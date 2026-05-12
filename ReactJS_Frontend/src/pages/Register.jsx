@@ -1,125 +1,129 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import InputField from "../components/InputField";
+import { Button, InputField, OtpInput, Message, StepIndicator, Card, PageWrapper } from "../components";
+
+const STEPS = ["Thông tin", "Xác thực OTP"];
 
 const Register = () => {
     const navigate = useNavigate();
-
     const [formData, setFormData] = useState({ name: "", email: "", password: "", confirmPassword: "" });
     const [otp, setOtp] = useState("");
-    const [step, setStep] = useState("init"); // init -> otp
+    const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [msg, setMsg] = useState(null);
+    const [msgType, setMsgType] = useState("info");
+    const [errors, setErrors] = useState({});
 
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    const validate = () => {
+        const errs = {};
+        if (!formData.name.trim()) errs.name = "Vui lòng nhập họ tên.";
+        if (!formData.email) errs.email = "Vui lòng nhập email.";
+        if (!formData.password || formData.password.length < 6) errs.password = "Mật khẩu tối thiểu 6 ký tự.";
+        if (formData.password !== formData.confirmPassword) errs.confirmPassword = "Mật khẩu xác nhận không khớp.";
+        return errs;
     };
 
     const sendOtp = async () => {
+        const errs = validate();
+        if (Object.keys(errs).length) { setErrors(errs); return; }
+        setErrors({});
         setLoading(true);
-        setMessage(null);
-        // simple client-side validation: password match
-        if (!formData.password || !formData.confirmPassword) {
-            setMessage('Vui lòng nhập mật khẩu và xác nhận mật khẩu.');
-            setLoading(false);
-            return;
-        }
-        if (formData.password !== formData.confirmPassword) {
-            setMessage('Mật khẩu và xác nhận mật khẩu không khớp.');
-            setLoading(false);
-            return;
-        }
-
+        setMsg(null);
         try {
             const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password })
+                body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Lỗi');
-            setStep("otp");
-            setMessage(data.message || 'OTP đã gửi.');
+            if (!res.ok) throw new Error(data.message || "Lỗi");
+            setStep(1);
+            setMsg(data.message || "OTP đã gửi.");
+            setMsgType("success");
         } catch (err) {
-            setMessage(err.message || 'Lỗi gửi OTP');
+            setMsg(err.message || "Lỗi gửi OTP");
+            setMsgType("error");
         } finally {
             setLoading(false);
         }
     };
 
     const verifyOtp = async () => {
+        if (otp.length !== 6) {
+            setErrors({ otp: "Vui lòng nhập đủ 6 chữ số." });
+            return;
+        }
+        setErrors({});
         setLoading(true);
-        setMessage(null);
+        setMsg(null);
         try {
             const res = await fetch(`${API_URL}/api/auth/verify`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: formData.email, otp })
+                body: JSON.stringify({ email: formData.email, otp }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Lỗi xác thực');
-            // registration complete — redirect to login or home
-            setMessage('Đăng ký thành công! Chuyển hướng...');
-            setTimeout(() => navigate('/login'), 1200);
+            if (!res.ok) throw new Error(data.message || "Lỗi xác thực");
+            setMsg("Đăng ký thành công! Đang chuyển hướng...");
+            setMsgType("success");
+            setTimeout(() => navigate("/login"), 1200);
         } catch (err) {
-            setMessage(err.message || 'Lỗi xác thực OTP');
+            setMsg(err.message || "Lỗi xác thực OTP");
+            setMsgType("error");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-            <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-                <h2 className="text-3xl font-extrabold text-center text-gray-900 mb-6">
-                    Tạo tài khoản <span className="text-primary">UTEShop</span>
-                </h2>
-
-                <div>
-                    <InputField label="Họ và tên" name="name" type="text" placeholder="Nguyễn Văn A" value={formData.name} onChange={handleChange} />
-                    <InputField label="Email" name="email" type="email" placeholder="example@hcmute.edu.vn" value={formData.email} onChange={handleChange} />
-                    <InputField label="Mật khẩu" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} />
-                    <InputField label="Xác nhận mật khẩu" name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} />
-
-                    {step === 'init' ? (
-                        <button type="button" onClick={sendOtp} disabled={loading} className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity mt-4">
-                            {loading ? 'Đang gửi...' : 'Gửi OTP'}
-                        </button>
-                    ) : (
-                        <>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Mã OTP</label>
-                                <input
-                                    type="text"
-                                    name="otp"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="Nhập mã OTP"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition-all"
-                                />
-                            </div>
-
-                            <div className="flex gap-2">
-                                <button type="button" onClick={verifyOtp} disabled={loading} className="flex-1 bg-primary text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity mt-0">
-                                    {loading ? 'Đang xác thực...' : 'Xác nhận OTP'}
-                                </button>
-                                <button type="button" onClick={sendOtp} disabled={loading} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-bold hover:opacity-90 transition-opacity mt-0">
-                                    Gửi lại
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    {message && <p className="mt-4 text-center text-sm text-gray-700">{message}</p>}
+        <PageWrapper>
+            <Card>
+                <div className="text-center mb-6">
+                    <h2 className="text-3xl font-extrabold text-gray-900">
+                        Tạo tài khoản <span className="text-primary">UTEShop</span>
+                    </h2>
                 </div>
 
-                <p className="mt-6 text-center text-gray-600">
-                    Đã có tài khoản? <Link to="/login" className="text-primary font-semibold hover:underline">Đăng nhập ngay</Link>
-                </p>
-            </div>
-        </div>
+                <StepIndicator steps={STEPS} current={step} />
+
+                {step === 0 && (
+                    <>
+                        <InputField label="Họ và tên" name="name" type="text" placeholder="Nguyễn Văn A" value={formData.name} onChange={handleChange} error={errors.name} />
+                        <InputField label="Email" name="email" type="email" placeholder="example@hcmute.edu.vn" value={formData.email} onChange={handleChange} error={errors.email} />
+                        <InputField label="Mật khẩu" name="password" type="password" placeholder="Tối thiểu 6 ký tự" value={formData.password} onChange={handleChange} error={errors.password} />
+                        <InputField label="Xác nhận mật khẩu" name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} />
+                        <Button loading={loading} onClick={sendOtp}>Gửi mã OTP</Button>
+                    </>
+                )}
+
+                {step === 1 && (
+                    <>
+                        <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mb-4 text-sm text-blue-600 text-center">
+                            Đã gửi OTP đến <strong>{formData.email}</strong>
+                        </div>
+                        <OtpInput value={otp} onChange={setOtp} />
+                        {errors.otp && <p className="text-xs text-red-500 -mt-3 mb-3 text-center">{errors.otp}</p>}
+                        <div className="flex gap-3">
+                            <Button loading={loading} onClick={verifyOtp}>Xác nhận OTP</Button>
+                            <Button variant="secondary" loading={loading} onClick={sendOtp}>Gửi lại</Button>
+                        </div>
+                    </>
+                )}
+
+                <Message text={msg} type={msgType} />
+
+                <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+                    <p className="text-gray-600">
+                        Đã có tài khoản?{" "}
+                        <Link to="/login" className="text-primary font-semibold hover:underline">Đăng nhập ngay</Link>
+                    </p>
+                </div>
+            </Card>
+        </PageWrapper>
     );
 };
 

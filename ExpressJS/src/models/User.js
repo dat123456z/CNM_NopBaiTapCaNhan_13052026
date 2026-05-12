@@ -15,13 +15,15 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(150),
         allowNull: false,
         unique: true,
-        validate: {
-            isEmail: true
-        }
+        validate: { isEmail: true }
     },
     password: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    avatar: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'users',

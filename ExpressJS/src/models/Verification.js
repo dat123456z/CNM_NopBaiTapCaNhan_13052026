@@ -9,7 +9,7 @@ const Verification = sequelize.define('Verification', {
     },
     name: {
         type: DataTypes.STRING(100),
-        allowNull: false
+        allowNull: true
     },
     email: {
         type: DataTypes.STRING(150),
@@ -17,7 +17,7 @@ const Verification = sequelize.define('Verification', {
     },
     password: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     otpHash: {
         type: DataTypes.STRING,
@@ -26,6 +26,11 @@ const Verification = sequelize.define('Verification', {
     expiresAt: {
         type: DataTypes.DATE,
         allowNull: false
+    },
+    type: {
+        type: DataTypes.ENUM('register', 'reset'),
+        allowNull: false,
+        defaultValue: 'register'
     }
 }, {
     tableName: 'verifications',
