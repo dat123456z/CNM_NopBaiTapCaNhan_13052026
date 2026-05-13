@@ -93,8 +93,8 @@ export const Card = ({ children, className = "" }) => (
     </div>
 );
 
-export const PageWrapper = ({ children }) => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+export const PageWrapper = ({ children, center = true }) => (
+    <div className={`min-h-screen flex ${center ? "items-center justify-center" : "items-start justify-start"} bg-gray-50 px-4 py-12`}>
         {children}
     </div>
 );

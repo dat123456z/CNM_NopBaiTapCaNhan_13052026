@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, InputField, Message, Card, PageWrapper } from "../components";
+import Header from "../components/Header";
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -122,127 +123,130 @@ const Profile = () => {
     if (!user) return null;
 
     return (
-        <PageWrapper>
-            <Card className="max-w-lg">
-                <div className="text-center mb-8">
-                    <div className="relative inline-block">
-                        <div
-                            onClick={() => editing && fileInputRef.current?.click()}
-                            className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center text-3xl font-bold overflow-hidden border-4 border-white shadow-lg ${editing ? "cursor-pointer" : ""
-                                }`}
-                            style={{
-                                background: avatarPreview ? "transparent" : "linear-gradient(135deg, #3b82f6, #6366f1)",
-                            }}
-                        >
-                            {avatarPreview ? (
-                                <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-white">{getInitials(user.name)}</span>
-                            )}
-                        </div>
-
-                        {editing && (
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-md border-2 border-white hover:opacity-90 transition-opacity"
+        <div>
+            <Header title="Trang cá nhân" subtitle={`Chào ${user.name || "người dùng"}`} small />
+            <PageWrapper>
+                <Card className="max-w-lg">
+                    <div className="text-center mb-8">
+                        <div className="relative inline-block">
+                            <div
+                                onClick={() => editing && fileInputRef.current?.click()}
+                                className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center text-3xl font-bold overflow-hidden border-4 border-white shadow-lg ${editing ? "cursor-pointer" : ""
+                                    }`}
+                                style={{
+                                    background: avatarPreview ? "transparent" : "linear-gradient(135deg, #3b82f6, #6366f1)",
+                                }}
                             >
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                    />
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                </svg>
-                            </button>
-                        )}
-
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleAvatarChange}
-                        />
-                    </div>
-
-                    {editing && <p className="text-xs text-gray-400 mt-2">Nhấn vào ảnh để thay đổi (tối đa 2MB)</p>}
-
-                    {!editing && (
-                        <>
-                            <h2 className="text-2xl font-extrabold text-gray-900 mt-4">{user.name}</h2>
-                            <p className="text-gray-500 text-sm">{user.email}</p>
-                        </>
-                    )}
-                </div>
-
-                <div className="space-y-1">
-                    {editing ? (
-                        <>
-                            <InputField
-                                label="Họ và tên"
-                                type="text"
-                                value={form.name}
-                                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                error={errors.name}
-                                placeholder="Nhập tên của bạn"
-                            />
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-sm select-none">
-                                    {user.email}
-                                    <span className="ml-2 text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
-                                        Không thể đổi
-                                    </span>
-                                </div>
+                                {avatarPreview ? (
+                                    <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-white">{getInitials(user.name)}</span>
+                                )}
                             </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <Button loading={loading} onClick={handleSave}>
-                                    Lưu thay đổi
-                                </Button>
-                                <Button variant="secondary" onClick={handleCancel}>
-                                    Hủy
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <InfoRow icon="user" label="Họ và tên" value={user.name} />
-                            <InfoRow icon="mail" label="Email" value={user.email} />
-                            <InfoRow
-                                icon="calendar"
-                                label="Thành viên từ"
-                                value={user.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : "UTEShop"}
-                            />
-
-                            <div className="pt-6 flex gap-3">
-                                <Button onClick={() => { setEditing(true); setMsg(null); }}>
-                                    Chỉnh sửa hồ sơ
-                                </Button>
-
+                            {editing && (
                                 <button
                                     type="button"
-                                    onClick={handleLogout}
-                                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-md border-2 border-white hover:opacity-90 transition-opacity"
                                 >
-                                    Thoát
+                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                        />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                    </svg>
                                 </button>
-                            </div>
-                        </>
-                    )}
-                </div>
+                            )}
 
-                <Message text={msg} type={msgType} />
-            </Card>
-        </PageWrapper>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleAvatarChange}
+                            />
+                        </div>
+
+                        {editing && <p className="text-xs text-gray-400 mt-2">Nhấn vào ảnh để thay đổi (tối đa 2MB)</p>}
+
+                        {!editing && (
+                            <>
+                                <h2 className="text-2xl font-extrabold text-gray-900 mt-4">{user.name}</h2>
+                                <p className="text-gray-500 text-sm">{user.email}</p>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="space-y-1">
+                        {editing ? (
+                            <>
+                                <InputField
+                                    label="Họ và tên"
+                                    type="text"
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    error={errors.name}
+                                    placeholder="Nhập tên của bạn"
+                                />
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-400 text-sm select-none">
+                                        {user.email}
+                                        <span className="ml-2 text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+                                            Không thể đổi
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    <Button loading={loading} onClick={handleSave}>
+                                        Lưu thay đổi
+                                    </Button>
+                                    <Button variant="secondary" onClick={handleCancel}>
+                                        Hủy
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <InfoRow icon="user" label="Họ và tên" value={user.name} />
+                                <InfoRow icon="mail" label="Email" value={user.email} />
+                                <InfoRow
+                                    icon="calendar"
+                                    label="Thành viên từ"
+                                    value={user.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : "UTEShop"}
+                                />
+
+                                <div className="pt-6 flex gap-3">
+                                    <Button onClick={() => { setEditing(true); setMsg(null); }}>
+                                        Chỉnh sửa hồ sơ
+                                    </Button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+                                    >
+                                        Thoát
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <Message text={msg} type={msgType} />
+                </Card>
+            </PageWrapper>
+        </div>
     );
 };
 
