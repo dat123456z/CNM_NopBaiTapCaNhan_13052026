@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import HomePage from "./pages/HomePage";
+import ProductPage from "./pages/ProductPage";
 import Navbar from "./components/Navbar";
 import ProductDetail from "./pages/ProductDetail";
 
@@ -16,6 +17,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/products" element={<ProductPage />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/" element={<HomePage />} />
             </Routes>

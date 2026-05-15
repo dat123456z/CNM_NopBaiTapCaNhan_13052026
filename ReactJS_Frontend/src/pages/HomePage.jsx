@@ -75,7 +75,7 @@ const HomePage = () => {
                 <div className="mt-6 max-w-3xl">
                     <div className="bg-white/10 rounded-xl p-6">
                         <h2 className="text-xl font-bold">Khuyến mãi tuần này</h2>
-                        <p className="mt-1 text-sm opacity-90">Giảm giá tới 30% cho các sản phẩm chọn lọc — số lượng có hạn.</p>
+                        <p className="mt-1 text-sm opacity-90">Giảm giá tới 30% cho các sản phẩm chọn lọc - số lượng có hạn.</p>
                     </div>
                 </div>
             </Header>

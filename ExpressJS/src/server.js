@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { connection, sequelize } = require('./config/database');
+const { seedIfEmpty } = require('./seeders/productSeeder');
 
 const app = express();
 app.use(cors());
@@ -27,6 +28,7 @@ const start = async () => {
     try {
         await connection();
         await sequelize.sync();
+        await seedIfEmpty();
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     } catch (err) {
         console.error('Server start error:', err);
