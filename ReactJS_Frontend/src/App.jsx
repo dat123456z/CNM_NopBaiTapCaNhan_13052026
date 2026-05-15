@@ -5,6 +5,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import HomePage from "./pages/HomePage";
 import Navbar from "./components/Navbar";
+import ProductDetail from "./pages/ProductDetail";
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/" element={<HomePage />} />
             </Routes>
         </BrowserRouter>
