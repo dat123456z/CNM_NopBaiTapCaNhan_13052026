@@ -15,9 +15,11 @@ app.use('/uploads', express.static(uploadsDir));
 
 require('./models/User');
 require('./models/Verification');
+require('./models/Product');
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/products', require('./routes/product'));
 
 const PORT = process.env.PORT || 3000;
 
