@@ -1,186 +1,75 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-const User = require('../models/User');
-const Verification = require('../models/Verification');
-
-const transporter = nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT,
-    secure: false,
-    auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-    }
-});
-
-const sendOTPEmail = async (to, otp, subject) => {
-    await transporter.sendMail({
-        from: process.env.MAIL_USER,
-        to,
-        subject,
-        text: `Mã OTP của bạn là: ${otp}. Mã có hiệu lực trong 10 phút.`
-    });
-};
-
-const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
-
-const createVerification = async ({ name, email, password, type }) => {
-    await Verification.destroy({ where: { email, type } });
-    const otp = generateOtp();
-    const otpHash = await bcrypt.hash(otp, 10);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await Verification.create({ name, email, password, otpHash, expiresAt, type });
-    return otp;
-};
+const authService = require('../services/authService');
 
 const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
         if (!name || !email || !password)
             return res.status(400).json({ message: 'Vui lòng cung cấp tên, email và mật khẩu.' });
-
-        const existing = await User.findOne({ where: { email } });
-        if (existing) return res.status(409).json({ message: 'Email đã được đăng ký.' });
-
-        const passwordHash = await bcrypt.hash(password, 10);
-        const otp = await createVerification({ name, email, password: passwordHash, type: 'register' });
-
-        try {
-            await sendOTPEmail(email, otp, 'Mã OTP xác thực đăng ký');
-        } catch {
-            return res.status(500).json({ message: 'Không thể gửi email OTP.' });
-        }
-
+        await authService.register({ name, email, password });
         return res.json({ message: 'OTP đã được gửi tới email. Vui lòng kiểm tra hộp thư.' });
     } catch (err) {
-        console.error('Register error:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ.' });
+        return res.status(err.status || 500).json({ message: err.message });
     }
 };
 
-const verify = async (req, res) => {
+const verifyRegister = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        if (!email || !otp) return res.status(400).json({ message: 'Vui lòng cung cấp email và mã OTP.' });
-
-        const pending = await Verification.findOne({ where: { email, type: 'register' } });
-        if (!pending) return res.status(400).json({ message: 'Không tìm thấy yêu cầu đăng ký.' });
-
-        if (new Date() > new Date(pending.expiresAt)) {
-            await pending.destroy();
-            return res.status(400).json({ message: 'Mã OTP đã hết hạn.' });
-        }
-
-        const match = await bcrypt.compare(otp, pending.otpHash);
-        if (!match) return res.status(400).json({ message: 'Mã OTP không đúng.' });
-
-        const user = await User.create({ name: pending.name, email: pending.email, password: pending.password });
-        await pending.destroy();
-
-        const payload = { id: user.id, email: user.email, name: user.name };
-        const token = jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: process.env.JWT_EXPIRES_IN || '1h' });
-
-        return res.status(201).json({ token, user: payload });
+        if (!email || !otp)
+            return res.status(400).json({ message: 'Vui lòng cung cấp email và mã OTP.' });
+        const result = await authService.verifyRegister({ email, otp });
+        return res.status(201).json(result);
     } catch (err) {
-        console.error('Verify error:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ.' });
+        return res.status(err.status || 500).json({ message: err.message });
     }
 };
 
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ message: 'Vui lòng cung cấp email và mật khẩu.' });
-
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng.' });
-
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng.' });
-
-        const payload = { id: user.id, email: user.email, name: user.name };
-        const token = jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: process.env.JWT_EXPIRES_IN || '1h' });
-
-        return res.json({ token, user: payload });
+        if (!email || !password)
+            return res.status(400).json({ message: 'Vui lòng cung cấp email và mật khẩu.' });
+        const result = await authService.login({ email, password });
+        return res.json(result);
     } catch (err) {
-        console.error('Login error:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ.' });
+        return res.status(err.status || 500).json({ message: err.message });
     }
 };
 
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(400).json({ message: 'Vui lòng cung cấp email.' });
-
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(404).json({ message: 'Email không tồn tại trong hệ thống.' });
-
-        const otp = await createVerification({ email, type: 'reset' });
-
-        try {
-            await sendOTPEmail(email, otp, 'Mã OTP đặt lại mật khẩu');
-        } catch {
-            return res.status(500).json({ message: 'Không thể gửi email OTP.' });
-        }
-
+        if (!email)
+            return res.status(400).json({ message: 'Vui lòng cung cấp email.' });
+        await authService.forgotPassword({ email });
         return res.json({ message: 'OTP đã được gửi tới email. Vui lòng kiểm tra hộp thư.' });
     } catch (err) {
-        console.error('ForgotPassword error:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ.' });
+        return res.status(err.status || 500).json({ message: err.message });
     }
 };
 
 const verifyResetOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        if (!email || !otp) return res.status(400).json({ message: 'Vui lòng cung cấp email và mã OTP.' });
-
-        const pending = await Verification.findOne({ where: { email, type: 'reset' } });
-        if (!pending) return res.status(400).json({ message: 'Không tìm thấy yêu cầu đặt lại mật khẩu.' });
-
-        if (new Date() > new Date(pending.expiresAt)) {
-            await pending.destroy();
-            return res.status(400).json({ message: 'Mã OTP đã hết hạn.' });
-        }
-
-        const match = await bcrypt.compare(otp, pending.otpHash);
-        if (!match) return res.status(400).json({ message: 'Mã OTP không đúng.' });
-
+        if (!email || !otp)
+            return res.status(400).json({ message: 'Vui lòng cung cấp email và mã OTP.' });
+        await authService.verifyResetOtp({ email, otp });
         return res.json({ message: 'OTP hợp lệ.' });
     } catch (err) {
-        console.error('VerifyResetOtp error:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ.' });
+        return res.status(err.status || 500).json({ message: err.message });
     }
 };
 
 const resetPassword = async (req, res) => {
     try {
-        const { email, otp, newPassword } = req.body;
-        if (!email || !otp || !newPassword)
+        const { email, newPassword } = req.body;
+        if (!email || !newPassword)
             return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin.' });
-
-        const pending = await Verification.findOne({ where: { email, type: 'reset' } });
-        if (!pending) return res.status(400).json({ message: 'Không tìm thấy yêu cầu đặt lại mật khẩu.' });
-
-        if (new Date() > new Date(pending.expiresAt)) {
-            await pending.destroy();
-            return res.status(400).json({ message: 'Mã OTP đã hết hạn.' });
-        }
-
-        const match = await bcrypt.compare(otp, pending.otpHash);
-        if (!match) return res.status(400).json({ message: 'Mã OTP không đúng.' });
-
-        const passwordHash = await bcrypt.hash(newPassword, 10);
-        await User.update({ password: passwordHash }, { where: { email } });
-        await pending.destroy();
-
+        await authService.resetPassword({ email, newPassword });
         return res.json({ message: 'Đặt lại mật khẩu thành công.' });
     } catch (err) {
-        console.error('ResetPassword error:', err);
-        return res.status(500).json({ message: 'Lỗi máy chủ.' });
+        return res.status(err.status || 500).json({ message: err.message });
     }
 };
 
-module.exports = { register, verify, login, forgotPassword, verifyResetOtp, resetPassword };
+module.exports = { register, verifyRegister, login, forgotPassword, verifyResetOtp, resetPassword };

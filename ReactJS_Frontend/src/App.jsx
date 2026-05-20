@@ -7,19 +7,41 @@ import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
 import Navbar from "./components/Navbar";
 import ProductDetail from "./pages/ProductDetail";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
     return (
         <BrowserRouter>
             <Navbar />
+
             <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/products" element={<ProductPage />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/" element={<HomePage />} />
+
+                <Route path="/" element={
+                    <ProtectedRoute>
+                        <HomePage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/profile" element={
+                    <ProtectedRoute>
+                        <Profile />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/products" element={
+                    <ProtectedRoute>
+                        <ProductPage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/product/:id" element={
+                    <ProtectedRoute>
+                        <ProductDetail />
+                    </ProtectedRoute>
+                } />
             </Routes>
         </BrowserRouter>
     );

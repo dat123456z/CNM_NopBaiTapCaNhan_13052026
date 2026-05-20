@@ -1,9 +1,21 @@
 const express = require('express');
-const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const authMiddleware = require('../middleware/auth');
-const { getProfile, updateProfile } = require('../controllers/userController');
+
+const router = express.Router();
+
+const { authMiddleware } = require('../middleware/auth');
+
+const {
+    getProfile,
+    updateProfile,
+    upsertAddress,
+    removeAddress,
+    setDefaultAddress,
+    listUsers,
+    setUserStatus,
+    setUserRole
+} = require('../controllers/userController');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -20,11 +32,38 @@ const upload = multer({
         if (!file.mimetype.startsWith('image/')) {
             return cb(new Error('Chỉ chấp nhận file ảnh.'));
         }
+
         cb(null, true);
     }
 });
 
 router.get('/profile', authMiddleware, getProfile);
-router.put('/profile', authMiddleware, upload.single('avatar'), updateProfile);
+
+router.put(
+    '/profile',
+    authMiddleware,
+    upload.single('avatar'),
+    updateProfile
+);
+
+router.post('/addresses', authMiddleware, upsertAddress);
+
+router.delete(
+    '/addresses/:addressId',
+    authMiddleware,
+    removeAddress
+);
+
+router.patch(
+    '/addresses/:addressId/default',
+    authMiddleware,
+    setDefaultAddress
+);
+
+router.get('/', authMiddleware, listUsers);
+
+router.patch('/:id/status', authMiddleware, setUserStatus);
+
+router.patch('/:id/role', authMiddleware, setUserRole);
 
 module.exports = router;

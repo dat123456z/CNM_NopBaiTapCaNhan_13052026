@@ -1,7 +1,10 @@
 const Product = require('../models/Product');
 
+const SHOP_ID = 1;
+
 const PRODUCT_DATA = [
     {
+        shopId: SHOP_ID,
         title: 'Áo thun basic unisex',
         description: 'Áo thun cotton 100% mềm mại, form regular vừa vặn. Thoáng khí, thấm hút mồ hôi tốt, phù hợp mặc hàng ngày hoặc đi chơi.',
         price: 150000,
@@ -14,9 +17,16 @@ const PRODUCT_DATA = [
         category: 'Thời trang',
         stock: 25,
         sold: 120,
-        similarIds: [2, 4]
+        similarIds: [2, 4],
+        colors: [
+            { label: 'Trắng', value: '#ffffff' },
+            { label: 'Đen', value: '#1a1a1a' },
+            { label: 'Xám', value: '#9ca3af' },
+            { label: 'Be', value: '#d4b896' }
+        ]
     },
     {
+        shopId: SHOP_ID,
         title: 'Quần jean slim fit',
         description: 'Quần jean co giãn nhẹ, dáng slim phong cách. Chất liệu denim cao cấp bền bỉ, phù hợp cho mọi độ tuổi và dịp mặc.',
         price: 350000,
@@ -28,11 +38,17 @@ const PRODUCT_DATA = [
         category: 'Thời trang',
         stock: 8,
         sold: 89,
-        similarIds: [1, 4]
+        similarIds: [1, 4],
+        colors: [
+            { label: 'Xanh đậm', value: '#1e3a5f' },
+            { label: 'Xanh nhạt', value: '#5b8fb9' },
+            { label: 'Đen', value: '#1a1a1a' }
+        ]
     },
     {
+        shopId: SHOP_ID,
         title: 'Giày sneaker trắng classic',
-        description: 'Giày thể thao thời trang đế cao su êm ái, trọng lượng nhẹ. Thiết kế hiện đại dễ phối với mọi trang phục từ casual đến năng động.',
+        description: 'Giày thể thao thời trang đế cao su êm ái, trọng lượng nhẹ. Thiết kế hiện đại dễ phối với mọi trang phục.',
         price: 650000,
         originalPrice: 850000,
         images: [
@@ -43,11 +59,17 @@ const PRODUCT_DATA = [
         category: 'Giày dép',
         stock: 0,
         sold: 234,
-        similarIds: [7, 8]
+        similarIds: [7, 8],
+        colors: [
+            { label: 'Trắng', value: '#ffffff' },
+            { label: 'Đen', value: '#1a1a1a' },
+            { label: 'Đỏ', value: '#ef4444' }
+        ]
     },
     {
+        shopId: SHOP_ID,
         title: 'Áo khoác bomber thu đông',
-        description: 'Áo khoác bomber ấm áp với lớp lót bông mỏng, chất liệu ngoài chống gió nhẹ. Phù hợp thời tiết se lạnh, kiểu dáng thể thao trẻ trung.',
+        description: 'Áo khoác bomber ấm áp với lớp lót bông mỏng, chống gió nhẹ.',
         price: 750000,
         originalPrice: null,
         images: [
@@ -57,11 +79,17 @@ const PRODUCT_DATA = [
         category: 'Thời trang',
         stock: 12,
         sold: 67,
-        similarIds: [1, 2]
+        similarIds: [1, 2],
+        colors: [
+            { label: 'Đen', value: '#1a1a1a' },
+            { label: 'Xanh rêu', value: '#4a5240' },
+            { label: 'Nâu', value: '#7c5c3e' }
+        ]
     },
     {
+        shopId: SHOP_ID,
         title: 'Túi xách da tổng hợp cao cấp',
-        description: 'Túi xách da tổng hợp chất lượng cao, bền theo thời gian. Thiết kế thanh lịch với nhiều ngăn tiện dụng, phù hợp nữ công sở hoặc đi chơi.',
+        description: 'Túi xách da tổng hợp chất lượng cao, thiết kế thanh lịch.',
         price: 1200000,
         originalPrice: 1500000,
         images: [
@@ -71,118 +99,30 @@ const PRODUCT_DATA = [
         category: 'Phụ kiện',
         stock: 5,
         sold: 43,
-        similarIds: [6, 9]
-    },
-    {
-        title: 'Mũ snapback thêu logo',
-        description: 'Mũ snapback phong cách streetwear với logo thêu nổi bật. Chất liệu vải bền, khóa snap sau dễ điều chỉnh, vừa nhiều size đầu.',
-        price: 250000,
-        originalPrice: null,
-        images: [
-            'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&q=80',
-            'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=800&q=80'
-        ],
-        category: 'Phụ kiện',
-        stock: 18,
-        sold: 156,
-        similarIds: [1, 5]
-    },
-    {
-        title: 'Sandal dây da nữ',
-        description: 'Sandal quai dây mảnh thanh lịch, đế cao 3cm êm chân. Chất da tổng hợp mềm mại, phù hợp đi làm, đi chơi, và các buổi tiệc nhẹ.',
-        price: 280000,
-        originalPrice: 380000,
-        images: [
-            'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80',
-            'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=800&q=80'
-        ],
-        category: 'Giày dép',
-        stock: 20,
-        sold: 98,
-        similarIds: [3, 8]
-    },
-    {
-        title: 'Giày boot cổ thấp da lộn',
-        description: 'Giày boot da lộn nam phong cách vintage, đế cao su chống trơn trượt. Thiết kế cổ thấp năng động dễ phối cùng quần jean hoặc chino.',
-        price: 890000,
-        originalPrice: 1100000,
-        images: [
-            'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=800&q=80',
-            'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=800&q=80'
-        ],
-        category: 'Giày dép',
-        stock: 7,
-        sold: 55,
-        similarIds: [3, 7]
-    },
-    {
-        title: 'Ví da nam gấp đôi',
-        description: 'Ví da thật dạng gấp đôi với nhiều khe đựng thẻ và ngăn tiền. Thiết kế mỏng gọn, dễ bỏ túi, bền bỉ qua thời gian sử dụng.',
-        price: 450000,
-        originalPrice: null,
-        images: [
-            'https://images.unsplash.com/photo-1627123424574-724758594913?w=800&q=80',
-            'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80'
-        ],
-        category: 'Phụ kiện',
-        stock: 30,
-        sold: 210,
-        similarIds: [5, 10]
-    },
-    {
-        title: 'Đồng hồ dây da classic',
-        description: 'Đồng hồ mặt tròn dây da nâu sang trọng, máy quartz Nhật chạy chính xác. Kính sapphire chống xước, chống nước 3ATM, phù hợp đi làm và dự tiệc.',
-        price: 1800000,
-        originalPrice: 2200000,
-        images: [
-            'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800&q=80',
-            'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=800&q=80',
-            'https://images.unsplash.com/photo-1533139502658-0198f920d8e8?w=800&q=80'
-        ],
-        category: 'Phụ kiện',
-        stock: 10,
-        sold: 78,
-        similarIds: [5, 9]
-    },
-    {
-        title: 'Áo sơ mi Oxford dài tay',
-        description: 'Áo sơ mi vải Oxford 100% cotton, form regular thoải mái. Màu trắng tinh tế dễ phối, phù hợp đi làm công sở hoặc các sự kiện lịch sự.',
-        price: 420000,
-        originalPrice: 520000,
-        images: [
-            'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&q=80',
-            'https://images.unsplash.com/photo-1604695573706-53170668f6a6?w=800&q=80'
-        ],
-        category: 'Thời trang',
-        stock: 15,
-        sold: 142,
-        similarIds: [1, 4]
-    },
-    {
-        title: 'Quần short kaki nam',
-        description: 'Quần short kaki nam chất liệu cotton pha polyester thoáng mát. Có túi hộp hai bên tiện dụng, phù hợp mặc hè hay đi biển dạo phố.',
-        price: 220000,
-        originalPrice: null,
-        images: [
-            'https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=800&q=80',
-            'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800&q=80'
-        ],
-        category: 'Thời trang',
-        stock: 35,
-        sold: 187,
-        similarIds: [2, 1]
+        similarIds: [6, 9],
+        colors: [
+            { label: 'Đen', value: '#1a1a1a' },
+            { label: 'Nâu', value: '#7c5c3e' },
+            { label: 'Kem', value: '#f5f0e8' }
+        ]
     }
 ];
 
 const seedIfEmpty = async () => {
-    const count = await Product.count();
-    if (count > 0) {
-        console.log(`>>> Products đã tồn tại (${count} sản phẩm), bỏ qua seed.`);
-        return;
-    }
+    try {
+        const count = await Product.count();
 
-    await Product.bulkCreate(PRODUCT_DATA);
-    console.log(`>>> Đã seed ${PRODUCT_DATA.length} sản phẩm vào database.`);
+        if (count > 0) {
+            console.log(`>>> Products đã tồn tại (${count}), skip seed`);
+            return;
+        }
+
+        await Product.bulkCreate(PRODUCT_DATA);
+
+        console.log(`>>> Seed thành công ${PRODUCT_DATA.length} products`);
+    } catch (err) {
+        console.error('>>> Seed error:', err.message);
+    }
 };
 
 module.exports = { seedIfEmpty };

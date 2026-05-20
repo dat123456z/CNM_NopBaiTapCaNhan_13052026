@@ -65,13 +65,21 @@ const ProductPage = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
     useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        const userRaw = localStorage.getItem("user");
+
+        if (!token || !userRaw) {
+            navigate("/login", { replace: true });
+            return;
+        }
+
         try {
-            const user = JSON.parse(localStorage.getItem("user") || "null");
-            const token = localStorage.getItem("token");
-            if (!user || !token) { navigate("/login"); return; }
-            if (user.role && user.role !== "user") { navigate("/login"); }
+            const user = JSON.parse(userRaw);
+            if (user?.role !== "user") {
+                navigate("/login", { replace: true });
+            }
         } catch {
-            navigate("/login");
+            navigate("/login", { replace: true });
         }
     }, [navigate]);
 
@@ -83,7 +91,13 @@ const ProductPage = () => {
                 setError("");
                 const res = await fetch(`${API_BASE}/api/products`, { signal: controller.signal });
                 if (!res.ok) throw new Error("Không tải được danh sách sản phẩm");
-                setProducts(await res.json());
+                const data = await res.json();
+
+                setProducts(
+                    Array.isArray(data)
+                        ? data
+                        : data?.products || data?.data || []
+                );
             } catch (err) {
                 if (err.name !== "AbortError") setError(err.message || "Có lỗi xảy ra");
             } finally {

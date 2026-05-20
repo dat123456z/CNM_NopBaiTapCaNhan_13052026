@@ -1,0 +1,26 @@
+const Wishlist = require('../models/Wishlist');
+const Product = require('../models/Product');
+
+const getWishlist = async (userId) => {
+    const items = await Wishlist.findAll({ where: { userId } });
+    const productIds = items.map((i) => i.productId);
+    if (productIds.length === 0) return [];
+
+    const products = await Product.findAll({ where: { id: productIds } });
+    return products;
+};
+
+const toggleWishlist = async (userId, productId) => {
+    const product = await Product.findByPk(productId);
+    if (!product) throw Object.assign(new Error('Sản phẩm không tồn tại.'), { status: 404 });
+
+    const existing = await Wishlist.findOne({ where: { userId, productId } });
+    if (existing) {
+        await existing.destroy();
+        return { added: false };
+    }
+    await Wishlist.create({ userId, productId });
+    return { added: true };
+};
+
+module.exports = { getWishlist, toggleWishlist };

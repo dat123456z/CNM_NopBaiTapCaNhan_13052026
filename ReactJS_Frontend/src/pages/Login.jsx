@@ -15,26 +15,57 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!formData.email || !formData.password) {
+            setMsg("Vui lòng nhập đầy đủ thông tin");
+            setMsgType("error");
+            return;
+        }
+
         setLoading(true);
         setMsg(null);
+
         try {
             const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: formData.email.trim(),
+                    password: formData.password
+                })
             });
+
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Lỗi đăng nhập");
-            localStorage.setItem("token", data.token);
+
+            console.log("LOGIN RESPONSE:", data, res.status);
+
+            if (!res.ok) {
+                setMsg(data.message || "Lỗi đăng nhập");
+                setMsgType("error");
+                return;
+            }
+
+            if (!data.token) {
+                setMsg("Server không trả token");
+                setMsgType("error");
+                return;
+            }
+
+            localStorage.setItem("accessToken", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
-            setMsg("Đăng nhập thành công! Đang chuyển hướng...");
+
+            setMsg("Đăng nhập thành công!");
             setMsgType("success");
-            setTimeout(() => navigate("/"), 1200);
+
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 500);
+
         } catch (err) {
             setMsg(err.message || "Lỗi đăng nhập");
             setMsgType("error");
-        } finally {
-            setLoading(false);
         }
     };
 
