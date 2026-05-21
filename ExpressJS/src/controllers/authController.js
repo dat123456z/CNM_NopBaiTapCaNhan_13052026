@@ -2,10 +2,10 @@ const authService = require('../services/authService');
 
 const register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, address } = req.body;
         if (!name || !email || !password)
             return res.status(400).json({ message: 'Vui lòng cung cấp tên, email và mật khẩu.' });
-        await authService.register({ name, email, password });
+        await authService.register({ name, email, password, address });
         return res.json({ message: 'OTP đã được gửi tới email. Vui lòng kiểm tra hộp thư.' });
     } catch (err) {
         return res.status(err.status || 500).json({ message: err.message });

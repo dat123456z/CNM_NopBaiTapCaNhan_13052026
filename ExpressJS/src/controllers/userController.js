@@ -22,7 +22,7 @@ const updateProfile = async (req, res) => {
 const upsertAddress = async (req, res) => {
     try {
         const addresses = await userService.upsertAddress(req.user.id, req.body);
-        return res.json({ addresses });
+        return res.json(addresses);
     } catch (err) {
         return res.status(err.status || 500).json({ message: err.message });
     }
@@ -31,7 +31,7 @@ const upsertAddress = async (req, res) => {
 const removeAddress = async (req, res) => {
     try {
         const addresses = await userService.removeAddress(req.user.id, req.params.addressId);
-        return res.json({ addresses });
+        return res.json(addresses);
     } catch (err) {
         return res.status(err.status || 500).json({ message: err.message });
     }
@@ -40,7 +40,7 @@ const removeAddress = async (req, res) => {
 const setDefaultAddress = async (req, res) => {
     try {
         const addresses = await userService.setDefaultAddress(req.user.id, req.params.addressId);
-        return res.json({ addresses });
+        return res.json(addresses);
     } catch (err) {
         return res.status(err.status || 500).json({ message: err.message });
     }

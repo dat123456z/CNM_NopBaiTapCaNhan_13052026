@@ -27,12 +27,12 @@ const signToken = (payload) =>
         expiresIn: process.env.JWT_EXPIRES_IN || '7d'
     });
 
-const createVerification = async ({ name, email, password, type }) => {
+const createVerification = async ({ name, email, password, address, type }) => {
     await Verification.destroy({ where: { email, type } });
     const otp = generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await Verification.create({ name, email, password, otpHash, expiresAt, type });
+    await Verification.create({ name, email, password, address: address || null, otpHash, expiresAt, type });
     return otp;
 };
 
@@ -48,25 +48,38 @@ const verifyOtp = async ({ email, otp, type }) => {
     return pending;
 };
 
-const register = async ({ name, email, password }) => {
+const register = async ({ name, email, password, address }) => {
     const existing = await User.findOne({ where: { email } });
     if (existing) throw Object.assign(new Error('Email đã được đăng ký.'), { status: 409 });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const otp = await createVerification({ name, email, password: passwordHash, type: 'register' });
+    const otp = await createVerification({ name, email, password: passwordHash, address, type: 'register' });
     await sendOTPEmail(email, otp, 'Mã OTP xác thực đăng ký');
 };
 
 const verifyRegister = async ({ email, otp }) => {
     const pending = await verifyOtp({ email, otp, type: 'register' });
+
+    // Lưu địa chỉ đăng ký làm địa chỉ mặc định
+    const addresses = [];
+    if (pending.address && pending.address.street) {
+        addresses.push({
+            id: Date.now().toString(),
+            street: pending.address.street,
+            isDefault: true
+        });
+    }
+
     const user = await User.create({
         name: pending.name,
         email: pending.email,
-        password: pending.password
+        password: pending.password,
+        phone: pending.address?.phone || null,
+        addresses
     });
     await pending.destroy();
 
-    const payload = { id: user.id, email: user.email, name: user.name, role: user.role };
+    const payload = { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone, avatar: user.avatar, addresses: user.addresses };
     return { token: signToken(payload), user: payload };
 };
 
@@ -78,8 +91,8 @@ const login = async ({ email, password }) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) throw Object.assign(new Error('Email hoặc mật khẩu không đúng.'), { status: 401 });
 
-    // FIX: thêm phone vào payload để client không cần gọi thêm /profile
-    const payload = { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone };
+    // FIX: thêm phone, avatar và addresses vào payload để client có đầy đủ thông tin
+    const payload = { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone, avatar: user.avatar, addresses: user.addresses };
     return { token: signToken(payload), user: payload };
 };
 

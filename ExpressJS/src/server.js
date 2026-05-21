@@ -29,6 +29,9 @@ require('./models/CartItem');
 require('./models/Order');
 require('./models/Review');
 require('./models/Wishlist');
+require('./models/Coupon');
+require('./models/WalletTransaction');
+require('./models/association');
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/user'));
@@ -45,13 +48,24 @@ const PORT = process.env.PORT || 3000;
 const start = async () => {
     try {
         await connection();
-
         await sequelize.sync();
-
         await seedIfEmpty();
 
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
+        const server = app.listen(PORT, () => {
+            console.log(` Server running on port ${PORT}`);
+        });
+
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`\n Port ${PORT} đang bị chiếm bởi process khác.`);
+                console.error(` Chạy lệnh sau để giải phóng port:\n`);
+                console.error(`   PowerShell: Get-Process -Name node | Stop-Process -Force`);
+                console.error(`   Hoặc: netstat -ano | findstr :${PORT}  →  taskkill /PID <PID> /F\n`);
+                process.exit(1);
+            } else {
+                console.error('Server error:', err);
+                process.exit(1);
+            }
         });
     } catch (err) {
         console.error('Server start error:', err);

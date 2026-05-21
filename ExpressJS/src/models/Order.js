@@ -6,7 +6,16 @@ const Order = sequelize.define('Order', {
     userId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     shopId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     status: {
-        type: DataTypes.ENUM('pending', 'confirmed', 'shipping', 'delivered', 'cancelled', 'refunded'),
+        type: DataTypes.ENUM(
+            'pending',          // 1. Đơn hàng mới
+            'confirmed',        // 2. Đã xác nhận
+            'preparing',        // 3. Shop đang chuẩn bị hàng
+            'shipping',         // 4. Đang giao hàng
+            'delivered',        // 5. Đã giao thành công
+            'cancelled',        // 6. Đã hủy
+            'cancel_requested', // Yêu cầu hủy (khi đang preparing)
+            'refunded'          // Đã hoàn tiền
+        ),
         allowNull: false,
         defaultValue: 'pending'
     },
@@ -23,6 +32,7 @@ const Order = sequelize.define('Order', {
     },
     shippingAddress: { type: DataTypes.JSON, allowNull: true },
     note: { type: DataTypes.TEXT, allowNull: true },
+    confirmedAt: { type: DataTypes.DATE, allowNull: true },   // Thời điểm xác nhận đơn
     cancelledAt: { type: DataTypes.DATE, allowNull: true },
     cancelReason: { type: DataTypes.STRING, allowNull: true },
     deliveredAt: { type: DataTypes.DATE, allowNull: true }

@@ -7,6 +7,23 @@ const Shop = require('../models/Shop');
 const WalletTransaction = require('../models/WalletTransaction');
 const { Op } = require('sequelize');
 
+// ── Auto-confirm sau 30 phút nếu đơn vẫn pending ──────────────────────────
+const scheduleAutoConfirm = (orderId) => {
+    const THIRTY_MIN = 30 * 60 * 1000;
+    setTimeout(async () => {
+        try {
+            const order = await Order.findByPk(orderId);
+            if (order && order.status === 'pending') {
+                await order.update({ status: 'confirmed', confirmedAt: new Date() });
+                console.log(`[Auto-confirm] Order #${orderId} confirmed automatically.`);
+            }
+        } catch (err) {
+            console.error(`[Auto-confirm] Error confirming order #${orderId}:`, err.message);
+        }
+    }, THIRTY_MIN);
+};
+
+// ── Tạo đơn hàng ──────────────────────────────────────────────────────────
 const createOrder = async (userId, { items, couponCode, shippingAddress, paymentMethod, note }) => {
     if (!items || items.length === 0) throw Object.assign(new Error('Giỏ hàng trống.'), { status: 400 });
 
@@ -53,7 +70,6 @@ const createOrder = async (userId, { items, couponCode, shippingAddress, payment
                         code: couponCode,
                         isActive: true,
                         [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gte]: new Date() } }],
-                        [Op.or]: [{ usageLimit: null }, { usedCount: { [Op.lt]: sequelize.col('usageLimit') } }]
                     }
                 });
                 if (coupon) {
@@ -62,13 +78,13 @@ const createOrder = async (userId, { items, couponCode, shippingAddress, payment
                             ? (subtotal * Number(coupon.value)) / 100
                             : Number(coupon.value);
                         if (coupon.maxDiscount) discount = Math.min(discount, Number(coupon.maxDiscount));
-                        discount = Math.min(discount, subtotal); // discount không vượt subtotal
+                        discount = Math.min(discount, subtotal);
                         await coupon.increment('usedCount', { transaction: t });
                     }
                 }
             }
 
-            const shippingFee = 30000;
+            const shippingFee = 0; // Miễn phí vận chuyển
             const total = subtotal - discount + shippingFee;
 
             const order = await Order.create({
@@ -83,7 +99,7 @@ const createOrder = async (userId, { items, couponCode, shippingAddress, payment
                 shippingAddress,
                 note,
                 status: 'pending',
-                paymentStatus: 'unpaid'
+                paymentStatus: paymentMethod === 'cod' ? 'unpaid' : 'unpaid'
             }, { transaction: t });
 
             await OrderItem.bulkCreate(
@@ -101,6 +117,12 @@ const createOrder = async (userId, { items, couponCode, shippingAddress, payment
 
         await CartItem.destroy({ where: { userId, productId: { [Op.in]: productIds } }, transaction: t });
         await t.commit();
+
+        // Schedule auto-confirm sau 30 phút cho mỗi đơn hàng
+        for (const order of orders) {
+            scheduleAutoConfirm(order.id);
+        }
+
         return orders;
     } catch (err) {
         await t.rollback();
@@ -108,6 +130,17 @@ const createOrder = async (userId, { items, couponCode, shippingAddress, payment
     }
 };
 
+// ── Confirm đơn hàng thủ công (shop) ─────────────────────────────────────
+const confirmOrder = async (orderId, shopId) => {
+    const order = await Order.findOne({ where: { id: orderId, shopId } });
+    if (!order) throw Object.assign(new Error('Đơn hàng không tồn tại.'), { status: 404 });
+    if (order.status !== 'pending')
+        throw Object.assign(new Error('Chỉ có thể xác nhận đơn hàng mới.'), { status: 400 });
+    await order.update({ status: 'confirmed', confirmedAt: new Date() });
+    return order;
+};
+
+// ── Lấy danh sách đơn hàng của user ──────────────────────────────────────
 const getMyOrders = async (userId, { page = 1, limit = 10, status }) => {
     const where = { userId };
     if (status) where.status = status;
@@ -122,6 +155,7 @@ const getMyOrders = async (userId, { page = 1, limit = 10, status }) => {
     return { total: count, page: Number(page), limit: Number(limit), orders: rows };
 };
 
+// ── Chi tiết đơn hàng ─────────────────────────────────────────────────────
 const getOrderDetail = async (orderId, userId, role) => {
     const where = { id: orderId };
     if (!['admin', 'manager'].includes(role)) where.userId = userId;
@@ -130,11 +164,30 @@ const getOrderDetail = async (orderId, userId, role) => {
     return order;
 };
 
+// ── Hủy đơn hàng ─────────────────────────────────────────────────────────
 const cancelOrder = async (orderId, userId, reason) => {
     const order = await Order.findOne({ where: { id: orderId, userId } });
     if (!order) throw Object.assign(new Error('Đơn hàng không tồn tại.'), { status: 404 });
-    if (!['pending', 'confirmed'].includes(order.status))
+
+    const now = new Date();
+    const createdAt = new Date(order.createdAt);
+    const diffMs = now - createdAt;
+    const THIRTY_MIN = 30 * 60 * 1000;
+
+    // Nếu đang ở bước preparing → gửi yêu cầu hủy cho shop
+    if (order.status === 'preparing') {
+        await order.update({ status: 'cancel_requested', cancelReason: reason || null });
+        return order;
+    }
+
+    // Chỉ cho hủy khi pending hoặc confirmed và trong vòng 30 phút
+    if (!['pending', 'confirmed'].includes(order.status)) {
         throw Object.assign(new Error('Không thể huỷ đơn hàng ở trạng thái này.'), { status: 400 });
+    }
+
+    if (diffMs > THIRTY_MIN) {
+        throw Object.assign(new Error('Đã quá 30 phút, không thể hủy đơn hàng.'), { status: 400 });
+    }
 
     const t = await sequelize.transaction();
     try {
@@ -153,11 +206,14 @@ const cancelOrder = async (orderId, userId, reason) => {
     return order;
 };
 
+// ── Cập nhật trạng thái đơn hàng (shop/admin) ────────────────────────────
 const updateOrderStatus = async (orderId, shopId, newStatus) => {
     const validTransitions = {
         pending: ['confirmed', 'cancelled'],
-        confirmed: ['shipping', 'cancelled'],
-        shipping: ['delivered']
+        confirmed: ['preparing', 'cancelled'],
+        preparing: ['shipping', 'cancelled'],
+        shipping: ['delivered'],
+        cancel_requested: ['cancelled', 'preparing'] // shop xử lý yêu cầu hủy
     };
 
     const order = await Order.findOne({ where: { id: orderId, shopId } });
@@ -166,6 +222,8 @@ const updateOrderStatus = async (orderId, shopId, newStatus) => {
         throw Object.assign(new Error(`Không thể chuyển sang trạng thái "${newStatus}".`), { status: 400 });
 
     const updates = { status: newStatus };
+
+    if (newStatus === 'confirmed') updates.confirmedAt = new Date();
 
     if (newStatus === 'delivered') {
         updates.deliveredAt = new Date();
@@ -192,6 +250,21 @@ const updateOrderStatus = async (orderId, shopId, newStatus) => {
             await t.rollback();
             throw err;
         }
+    } else if (newStatus === 'cancelled') {
+        // Hoàn lại stock khi shop hủy đơn
+        const t = await sequelize.transaction();
+        try {
+            await order.update(updates, { transaction: t });
+            const items = await OrderItem.findAll({ where: { orderId } });
+            for (const item of items) {
+                await Product.increment('stock', { by: item.quantity, where: { id: item.productId }, transaction: t });
+                await Product.decrement('sold', { by: item.quantity, where: { id: item.productId }, transaction: t });
+            }
+            await t.commit();
+        } catch (err) {
+            await t.rollback();
+            throw err;
+        }
     } else {
         await order.update(updates);
     }
@@ -199,6 +272,7 @@ const updateOrderStatus = async (orderId, shopId, newStatus) => {
     return order;
 };
 
+// ── Lấy đơn hàng của shop ────────────────────────────────────────────────
 const getShopOrders = async (shopId, { page = 1, limit = 20, status }) => {
     const where = { shopId };
     if (status) where.status = status;
@@ -213,4 +287,4 @@ const getShopOrders = async (shopId, { page = 1, limit = 20, status }) => {
     return { total: count, page: Number(page), limit: Number(limit), orders: rows };
 };
 
-module.exports = { createOrder, getMyOrders, getOrderDetail, cancelOrder, updateOrderStatus, getShopOrders };
+module.exports = { createOrder, confirmOrder, getMyOrders, getOrderDetail, cancelOrder, updateOrderStatus, getShopOrders };

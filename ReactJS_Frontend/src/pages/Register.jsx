@@ -27,7 +27,9 @@ const Register = () => {
         name: "",
         email: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        phone: "",
+        address: ""
     });
 
     const [otp, setOtp] = useState("");
@@ -89,6 +91,15 @@ const Register = () => {
             }
         }
 
+        if (!formData.phone.trim()) {
+            errs.phone = "Vui lòng nhập số điện thoại.";
+        } else {
+            const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+            if (!phoneRegex.test(formData.phone.trim())) {
+                errs.phone = "Số điện thoại không hợp lệ (10 chữ số).";
+            }
+        }
+
         if (!formData.password) {
             errs.password =
                 "Vui lòng nhập mật khẩu.";
@@ -109,6 +120,8 @@ const Register = () => {
             errs.confirmPassword =
                 "Mật khẩu xác nhận không khớp.";
         }
+
+        if (!formData.address.trim()) errs.address = "Vui lòng nhập địa chỉ.";
 
         return errs;
     };
@@ -134,7 +147,11 @@ const Register = () => {
                     .trim()
                     .toLowerCase(),
                 password:
-                    formData.password
+                    formData.password,
+                address: {
+                    street: formData.address.trim(),
+                    phone: formData.phone.trim()
+                }
             };
 
             const res = await fetch(
@@ -159,7 +176,7 @@ const Register = () => {
             if (!res.ok) {
                 throw new Error(
                     data.message ||
-                        "Lỗi gửi OTP"
+                    "Lỗi gửi OTP"
                 );
             }
 
@@ -167,14 +184,14 @@ const Register = () => {
 
             setMsg(
                 data.message ||
-                    "OTP đã được gửi tới email."
+                "OTP đã được gửi tới email."
             );
 
             setMsgType("success");
         } catch (err) {
             setMsg(
                 err.message ||
-                    "Lỗi gửi OTP"
+                "Lỗi gửi OTP"
             );
 
             setMsgType("error");
@@ -225,47 +242,23 @@ const Register = () => {
             if (!res.ok) {
                 throw new Error(
                     data.message ||
-                        "Lỗi xác thực OTP"
-                );
-            }
-
-            if (data.token) {
-                localStorage.setItem(
-                    "accessToken",
-                    data.token
-                );
-            }
-
-            if (data.user) {
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(
-                        data.user
-                    )
+                    "Lỗi xác thực OTP"
                 );
             }
 
             setMsg(
-                "Đăng ký thành công!"
+                "Đăng ký thành công! Đang chuyển hướng..."
             );
 
             setMsgType("success");
 
             setTimeout(() => {
-                if (
-                    data.user?.role ===
-                    "admin"
-                ) {
-                    navigate("/admin");
-                    return;
-                }
-
-                navigate("/");
-            }, 1000);
+                navigate("/login");
+            }, 1500);
         } catch (err) {
             setMsg(
                 err.message ||
-                    "Lỗi xác thực OTP"
+                "Lỗi xác thực OTP"
             );
 
             setMsgType("error");
@@ -326,6 +319,22 @@ const Register = () => {
                         />
 
                         <InputField
+                            label="Số điện thoại"
+                            name="phone"
+                            type="text"
+                            placeholder="Ví dụ: 0912345678"
+                            value={
+                                formData.phone
+                            }
+                            onChange={
+                                handleChange
+                            }
+                            error={
+                                errors.phone
+                            }
+                        />
+
+                        <InputField
                             label="Mật khẩu"
                             name="password"
                             type="password"
@@ -354,6 +363,22 @@ const Register = () => {
                             }
                             error={
                                 errors.confirmPassword
+                            }
+                        />
+
+                        <InputField
+                            label="Địa chỉ"
+                            name="address"
+                            type="text"
+                            placeholder="VD: 123 Lê Lợi, Phường 1, Quận 1, TP.HCM"
+                            value={
+                                formData.address
+                            }
+                            onChange={
+                                handleChange
+                            }
+                            error={
+                                errors.address
                             }
                         />
 

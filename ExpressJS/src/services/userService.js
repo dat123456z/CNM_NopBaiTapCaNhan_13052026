@@ -11,12 +11,15 @@ const formatUser = (user) => ({
     avatar: user.avatar,
     addresses: user.addresses || [],
     role: user.role,
+    isActive: user.isActive,
+    bannedAt: user.bannedAt,
+    bannedReason: user.bannedReason,
     createdAt: user.createdAt
 });
 
 const getProfile = async (userId) => {
     const user = await User.findByPk(userId, {
-        attributes: ['id', 'name', 'email', 'phone', 'avatar', 'addresses', 'role', 'createdAt']
+        attributes: { exclude: ['password'] }
     });
     if (!user) throw Object.assign(new Error('Người dùng không tồn tại.'), { status: 404 });
     return formatUser(user);
